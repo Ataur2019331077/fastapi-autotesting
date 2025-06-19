@@ -1,0 +1,53 @@
+name: Conditional FastAPI Test & Auto Merge
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install fastapi pytest httpx
+
+    - name: Check if app/main.py exists
+      id: check_file
+      run: |
+        if [ -f "app/main.py" ]; then
+          echo "file_exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "file_exists=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Run tests (only if main.py exists)
+      if: steps.check_file.outputs.file_exists == 'true'
+      run: |
+        pytest tests/
+
+  auto-merge:
+    needs: test
+    if: success()
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Auto-merge PR if tests pass
+      uses: peter-evans/enable-pull-request-automerge@v3
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        merge-method: squash
