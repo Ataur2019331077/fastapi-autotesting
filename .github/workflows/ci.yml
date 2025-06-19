@@ -34,7 +34,9 @@ jobs:
     - name: Run tests (only if main.py exists)
       if: steps.check_file.outputs.file_exists == 'true'
       run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)
         pytest tests/
+
 
   auto-merge:
     needs: test
